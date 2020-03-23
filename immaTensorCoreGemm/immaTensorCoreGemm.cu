@@ -12,6 +12,7 @@
 // CUDA sample demonstrating a integer GEMM computation using the Warp Matrix Multiply
 // and Accumulate API.
 
+
 // In this program, the compute_gemm kernel computes the result of a matrix multiplication
 // and addition: D = alpha * A * B + beta * C. The dimensions of both C and D matrices
 // are M_GLOBAL x N_GLOBAL. The A matrix is M_GLOBAL x K_GLOBAL (row-major), the B matrix

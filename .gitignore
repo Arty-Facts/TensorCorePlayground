@@ -4,10 +4,11 @@
 *.cache
 *.db
 *.suo
-Debug/*
+Debug*
 *.log
 *.idb
 *.opendb
 *.deps
 *.vs
 *.vscode
+bin*
