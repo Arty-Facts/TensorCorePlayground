@@ -1,0 +1,13 @@
+*.obj
+*.tlog
+*.pdb
+*.cache
+*.db
+*.suo
+Debug/*
+*.log
+*.idb
+*.opendb
+*.deps
+*.vs
+*.vscode
