@@ -7,24 +7,51 @@
 
 
 #define BLOCKSIZE 32
-
 template<typename T>
 __global__ void matrixMultiplicationKernel(T* C, T* A, T* B,  unsigned int N) {
 
-    unsigned int ROW = blockIdx.y * blockDim.y + threadIdx.y;
-    unsigned int COL = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
 
     T tmpSum = 0;
 
-    if (ROW < N && COL < N) {
+    if (y < N && x < N) {
         // each thread computes one element of the block sub-matrix
         for (unsigned int i = 0; i < N; i++) {
-            tmpSum += A[ROW * N + i] * B[i * N + COL];
+            tmpSum += A[y * N + i] * B[i * N + x];
         }
     }
     //printf("tmp sum: %f\n", tmpSum);
-    C[ROW * N + COL] = tmpSum;
+    C[y * N + x] = tmpSum;
     
+}
+template<typename T>
+__global__ void matmul_kernel(T* C, T* A, T* B, unsigned int N) {
+
+    __shared__ T sA[BLOCKSIZE][BLOCKSIZE];
+    __shared__ T sB[BLOCKSIZE][BLOCKSIZE];
+
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
+    int x = blockIdx.x * blockDim.x + tx;
+    int y = blockIdx.y * blockDim.y + ty;
+
+    T tmpSum = 0;
+    int k, kb;
+
+    for (k = 0; k < N; k += blockDim.x) {
+        __syncthreads();
+        sA[ty][tx] = A[y * N + k + tx];
+        sB[ty][tx] = B[(k + ty) * N + x];
+        __syncthreads();
+
+        for (kb = 0; kb < blockDim.x; kb++) {
+            tmpSum += sA[ty][kb] * sB[kb][tx];
+        }
+
+    }
+
+    C[y * N + x] = tmpSum;
 }
 
 template<typename T>
@@ -35,8 +62,13 @@ public:
     matrixMultiplication(T* c, const T* a, const T* b,  unsigned int n)
         : c{ c }, a{ a }, b{ b }, size{ n*n }, n{ n } {};
 
-    void lanch()
+    float lanch(void (*kernal)(T* C, T* A, T* B, unsigned int N) )
     {
+
+        cudaEvent_t myEventStart;
+        cudaEvent_t myEventStop;
+        float gpu_time;
+
         dim3 threadsPerBlock(n, n);
         dim3 blocksPerGrid(1, 1);
         if (n > BLOCKSIZE) {
@@ -45,7 +77,18 @@ public:
             blocksPerGrid.x = ceil(double(n) / double(threadsPerBlock.x));
             blocksPerGrid.y = ceil(double(n) / double(threadsPerBlock.y));
         }
-        matrixMultiplicationKernel<T> <<<blocksPerGrid, threadsPerBlock >>> (dev_c, dev_a, dev_b, n);
+        // Time the run
+        cudaEventCreate(&myEventStart);
+        cudaEventRecord(myEventStart, 0);
+        cudaEventSynchronize(myEventStart);
+        (*kernal) <<<blocksPerGrid, threadsPerBlock >>> (dev_c, dev_a, dev_b, n);
+        // wait to be done
+        cudaThreadSynchronize();
+        cudaEventCreate(&myEventStop);
+        cudaEventRecord(myEventStop, 0);
+        cudaEventSynchronize(myEventStop);
+        cudaEventElapsedTime(&gpu_time, myEventStart, myEventStop);
+        return gpu_time;
     }
 
     cudaError_t setup() 
@@ -87,13 +130,14 @@ public:
             fprintf(stderr, "cudaMemcpy failed!");
             return cudaStatus;
         }
+        return cudaStatus;
     }
     cudaError_t therdown()
     {
         // Check for any errors launching the kernel
         cudaStatus = cudaGetLastError();
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "matrixMultiplicationkernal launch failed: %s\n", cudaGetErrorString(cudaStatus));
+            fprintf(stderr, "kernal launch failed: %s\n", cudaGetErrorString(cudaStatus));
             return cudaStatus;
         }
 
@@ -101,7 +145,7 @@ public:
         // any errors encountered during the launch.
         cudaStatus = cudaDeviceSynchronize();
         if (cudaStatus != cudaSuccess) {
-            fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching matrixMultiplicationkernal!\n", cudaStatus);
+            fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching kernal!\n", cudaStatus);
             return cudaStatus;
         }
 
@@ -132,52 +176,9 @@ private:
     cudaError_t cudaStatus;
 };
 
-int main()
-{
-    // Perform matrix multiplication C = A*B
-    // where A, B and C are NxN matrices
-    const int N = 128;
-    const int SIZE = N * N;
-
-    // Allocate memory on the host
-    float a[SIZE];
-    float b[SIZE];
-    float c[SIZE];
-
-    // Initialize matrices on the host
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < N; j++) {
-            a[i * N + j] = sin(i);
-            b[i * N + j] = cos(j);
-        }
-    }
-
-    matrixMultiplication<float> runner(c, a, b, N);
-    printf("Start...\n");
-    printf("Computing %d x %d matrix multiply...\n", N ,N);
-    runner.setup();
-    cudaEvent_t myEventStart;
-    cudaEventCreate(&myEventStart);
-    cudaEventRecord(myEventStart, 0);
-    cudaEventSynchronize(myEventStart);
-
-    runner.lanch();
-
-    cudaThreadSynchronize();
-    cudaEvent_t myEventStop;
-    cudaEventCreate(&myEventStop);
-    cudaEventRecord(myEventStop, 0);
-    cudaEventSynchronize(myEventStop);
-    float gpu_time;
-    cudaEventElapsedTime(&gpu_time, myEventStart, myEventStop);
-    printf("GPU Computation time: %f\n", gpu_time);
-
-    runner.therdown();
-
-    float* cpu_C;
-    cpu_C = new float[SIZE];
-    float sum;
-
+template<typename T>
+float matrixMultiplicationCPU(T* c, const T* a, const T* b, unsigned int N) {
+    T sum;
     auto start_cpu_time = std::chrono::high_resolution_clock::now();
     for (int row = 0; row < N; row++) {
         for (int col = 0; col < N; col++) {
@@ -185,20 +186,79 @@ int main()
             for (int n = 0; n < N; n++) {
                 sum += a[row * N + n] * b[n * N + col];
             }
-            cpu_C[row * N + col] = sum;
+            c[row * N + col] = sum;
         }
     }
     auto end_cpu_time = std::chrono::high_resolution_clock::now();
     float cpu_time = std::chrono::duration<double, std::milli>(end_cpu_time - start_cpu_time).count();
-    printf("CPU Computation time: %f\n", cpu_time);
+    return cpu_time;
+
+}
+template<typename T>
+double validate(T* val_c, T* c, unsigned int N) {
     double err = 0;
     // Check the result and make sure it is correct
     for (int ROW = 0; ROW < N; ROW++) {
         for (int COL = 0; COL < N; COL++) {
-            // printf("cpu: %f -> gpu: %f\n", cpu_C[ROW * N + COL], c[ROW * N + COL]);
-            err += cpu_C[ROW * N + COL] - c[ROW * N + COL];
+            //printf("cpu: %f -> gpu: %f\n", val_c[ROW * N + COL], c[ROW * N + COL]);
+            err += val_c[ROW * N + COL] - c[ROW * N + COL];
         }
     }
+    return err;
+}
+
+int main()
+{
+    // Perform matrix multiplication C = A*B
+    // where A, B and C are NxN matrices
+    const int N = 64;
+    const int SIZE = N * N;
+
+    // Allocate memory on the host
+    float gpu_time;
+    float cpu_time;
+    double err;
+    float a[SIZE];
+    float b[SIZE];
+    float c[SIZE];
+
+    printf("Start...\n");
+    printf("Computing %d x %d matrix ...\n", N ,N);
+    // Initialize matrices on the host
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            a[i * N + j] = sin(i);
+            b[i * N + j] = cos(j);
+        }
+    }
+    float* cpu_C;
+    cpu_C = new float[SIZE];
+
+    
+    cpu_time = matrixMultiplicationCPU<float>(cpu_C, a, b, N);
+    
+    printf("CPU Computation time: %f\n", cpu_time);
+
+    matrixMultiplication<float> runner(c, a, b, N);
+    runner.setup();
+
+    gpu_time = runner.lanch(&matrixMultiplicationKernel<float>);
+
+    printf("matrixMultiplicationKernel GPU Computation time: %f\n", gpu_time);
+
+    runner.therdown();
+
+    // Check the result and make sure it is correct
+    err = validate(c, cpu_C, N);
+    printf("Error:  %lf\n", err);
+
+    gpu_time =  runner.lanch(&matmul_kernel<float>);
+
+    printf("matmul_kernel GPU Computation time: %f\n", gpu_time);
+
+    runner.therdown();
+    // Check the result and make sure it is correct
+    err = validate(c, cpu_C, N);
     printf("Error:  %lf\n", err);
     delete cpu_C;
 
