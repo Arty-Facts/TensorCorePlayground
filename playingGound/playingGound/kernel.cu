@@ -9,9 +9,10 @@
 
 
 #define BLOCK_SIZE 32
-#define MAT_SIZE 1024*4
+#define MAT_SIZE 1024*8
 #define DEVICE 0
 #define USE_CPU false
+#define TYPE double
 
 #include "kernel.hpp"
 #include "setup.hpp"
@@ -104,15 +105,12 @@ void run(bool use_cpu=true) {
     free(c);
 
 }
-//
-//half2 operator=(const float& other ) {
-//    return __float2half2_rn(other);
-//}
+
 
 int main()
 {
     // un experiemt with the set up type
-    run<float>(USE_CPU);
+    run<TYPE>(USE_CPU);
 
     // cudaDeviceReset must be called before exiting in order for profiling and
     // tracing tools such as Nsight and Visual Profiler to show complete traces.

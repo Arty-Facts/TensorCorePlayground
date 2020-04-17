@@ -7,13 +7,11 @@ __global__ void matmul_kernel(T* C, T* A, T* B, unsigned int N) {
 
     T tmpSum = 0;
 
-    //if (y < N && x < N) {
-        // each thread computes one element of the block sub-matrix
     for (unsigned int i = 0; i < N; i++) {
-        tmpSum += A[y * N + i] * B[i * N + x];
+        // assuming the matrix is transposed for better Coalescing
+        // tmpSum += A[y * N + i] * B[i * N + x];
+        tmpSum += A[y * N + i] * B[x * N + i];
     }
-    //}
-    //printf("tmp sum: %f\n", tmpSum);
     C[y * N + x] = tmpSum;
 
 }
@@ -35,7 +33,7 @@ __global__ void matmul_shared_kernel(T* C, T* A, T* B, unsigned int N) {
     for (k = 0; k < N; k += blockDim.x) {
         __syncthreads();
         sA[ty][tx] = A[y * N + k + tx];
-        sB[ty][tx] = B[(k + ty) * N + x];
+        sB[ty][tx] = B[x * N + k + ty];
         __syncthreads();
 
         for (kb = 0; kb < blockDim.x; kb++) {
@@ -68,10 +66,10 @@ __global__ void matmul_cuda_kernel(T* C, T* A, T* B, unsigned int N) {
     int aStep = BLOCK_SIZE;
 
     // Index of the first sub-matrix of B processed by the block
-    int bBegin = BLOCK_SIZE * bx;
+    int bBegin = N * BLOCK_SIZE * bx;
 
     // Step size used to iterate through the sub-matrices of B
-    int bStep = BLOCK_SIZE * N;
+    int bStep = BLOCK_SIZE;
 
     // Csub is used to store the element of the block sub-matrix
     // that is computed by the thread
@@ -94,7 +92,7 @@ __global__ void matmul_cuda_kernel(T* C, T* A, T* B, unsigned int N) {
         // to shared memory; each thread loads
         // one element of each matrix
         As[ty][tx] = A[a + N * ty + tx];
-        Bs[ty][tx] = B[b + N * ty + tx];
+        Bs[ty][tx] = B[b + N * tx + ty];
 
         // Synchronize to make sure the matrices are loaded
         __syncthreads();
@@ -137,7 +135,7 @@ __global__ void matmul_opt_kernel(T* C, T* A, T* B, unsigned int N) {
         ii = b * blockDim.x + threadIdx.x;
         jj = b * blockDim.y + threadIdx.y;
         As[threadIdx.y * blockDim.x + threadIdx.x] = A[N * j + ii];
-        Bs[threadIdx.y * blockDim.x + threadIdx.x] = B[i + N * jj];
+        Bs[threadIdx.y * blockDim.x + threadIdx.x] = B[N * i + jj];
         __syncthreads(); // Synchronize to make sure all data is loaded
         // Loop, perform computations in patch
         for (k = 0; k < blockDim.x; ++k)
