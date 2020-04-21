@@ -1,16 +1,16 @@
 template<typename T>
 float matrixMultiplicationCPU(T* c, const T* a, const T* b, unsigned int N) {
-    T sum;
+    float sum;
     auto start_cpu_time = std::chrono::high_resolution_clock::now();
     for (int row = 0; row < N; row++) {
         for (int col = 0; col < N; col++) {
             sum = 0.f;
             for (int n = 0; n < N; n++) {
-                //sum += a[row * N + n] * b[n * N + col];
+                //sum += (float)a[row * N + n] * (float)b[n * N + col];
                 //assuming the matrix is transposed for better Coalescing
-                sum += a[row * N + n] * b[col * N + n];
+                sum += (float)a[row * N + n] * (float)b[col * N + n];
             }
-            c[row * N + col] = sum;
+            c[row * N + col] = (T)sum;
         }
     }
     auto end_cpu_time = std::chrono::high_resolution_clock::now();

@@ -16,11 +16,17 @@ Maximum grid dimensions:    2147483647 x 65535 x 65535
 Clock Rate:                 1815000
 Number of muliprocessors:   48
 Start...
-Computing 8192 x 8192 matrix ...
-matmul_kernel GPU Computation time: 130927.343750
-matmul_shared_kernel GPU Computation time: 61972.496094
-matmul_cuda_kernel GPU Computation time: 62078.320313
-matmul_opt_kernel GPU Computation time: 60643.042969
+Type size 2
+matmul_kernel GPU Computation time: 130890.234375
+Error:  0.000000
+matmul_shared_kernel GPU Computation time: 61729.500000
+Error:  0.000000
+matmul_cuda_kernel GPU Computation time: 61725.289063
+Error:  0.000000
+matmul_opt_kernel GPU Computation time: 60317.855469
+Error:  0.000000
+matmul_mma_kernel GPU Computation time: 2268.580811
+Error:  1055.549316
 
 For device #0
 Device name:                GeForce RTX 2080 SUPER
@@ -36,10 +42,17 @@ Clock Rate:                 1815000
 Number of muliprocessors:   48
 Start...
 Computing 4096 x 4096 matrix ...
-matmul_kernel GPU Computation time: 13531.789063
-matmul_shared_kernel GPU Computation time: 7641.550293
-matmul_cuda_kernel GPU Computation time: 7634.952637
-matmul_opt_kernel GPU Computation time: 7489.634766
+Type size 2
+matmul_kernel GPU Computation time: 13529.435547
+Error:  0.000000
+matmul_shared_kernel GPU Computation time: 7643.966797
+Error:  0.000000
+matmul_cuda_kernel GPU Computation time: 7671.623535
+Error:  0.000000
+matmul_opt_kernel GPU Computation time: 7502.210938
+Error:  0.000000
+matmul_mma_kernel GPU Computation time: 267.886932
+Error:  222.691162
 
 For device #0
 Device name:                GeForce RTX 2080 SUPER
@@ -55,10 +68,18 @@ Clock Rate:                 1815000
 Number of muliprocessors:   48
 Start...
 Computing 256 x 256 matrix ...
-matmul_kernel GPU Computation time: 3.571072
-matmul_shared_kernel GPU Computation time: 3.395744
-matmul_cuda_kernel GPU Computation time: 3.429952
-matmul_opt_kernel GPU Computation time: 3.372160
+Type size 2
+matrixMultiplicationCPU CPU Computation time: 1406.348145
+matmul_kernel GPU Computation time: 3.655904
+Error:  -5.858887
+matmul_shared_kernel GPU Computation time: 3.410304
+Error:  -5.858887
+matmul_cuda_kernel GPU Computation time: 3.427264
+Error:  -5.858887
+matmul_opt_kernel GPU Computation time: 3.324352
+Error:  -5.858887
+matmul_mma_kernel GPU Computation time: 0.335296
+Error:  -5.858887
 
 ```
 

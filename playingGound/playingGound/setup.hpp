@@ -6,7 +6,7 @@ public:
     matrixMultiplication(T* c, const T* a, const T* b,  unsigned int n)
         : c{ c }, a{ a }, b{ b }, size{ n*n }, n{ n } {};
 
-    float lanch(void (*kernal)(T* C, T* A, T* B, unsigned int N) )
+    float lanch(void (*kernal)(T* C, T* A, T* B, const unsigned int N), bool tc_blocks=false )
     {
 
         cudaEvent_t myEventStart;
@@ -20,6 +20,12 @@ public:
             threadsPerBlock.y = BLOCK_SIZE;
             blocksPerGrid.x = ceil(double(n) / double(threadsPerBlock.x));
             blocksPerGrid.y = ceil(double(n) / double(threadsPerBlock.y));
+        }
+        if (tc_blocks) {
+            threadsPerBlock.x = 4 * WARP_SIZE; 
+	        threadsPerBlock.y = 4;
+            blocksPerGrid.x = (n + (WMMA_C * threadsPerBlock.x / WARP_SIZE - 1)) / (WMMA_C * threadsPerBlock.x / WARP_SIZE);
+	        blocksPerGrid.y = (n + WMMA_C * threadsPerBlock.y - 1) / (WMMA_C * threadsPerBlock.y);
         }
         // Time the run
         cudaEventCreate(&myEventStart);
