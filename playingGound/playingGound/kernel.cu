@@ -13,7 +13,7 @@
 #define BLOCK_SIZE 32
 #define MAT_SIZE 1024*8
 #define DEVICE 0
-#define USE_CPU true
+#define USE_CPU false
 #define TYPE half
 #define TC true
 #define WARP_SIZE 32
@@ -36,20 +36,30 @@ void run(bool use_cpu=true) {
     double err;
     float cpu_time;
     unsigned int mem_size = sizeof(T) * SIZE;
-    T* verify_C =  reinterpret_cast<T*>(malloc(mem_size));
     
     T* a = reinterpret_cast<T*>(malloc(mem_size));
     T* b = reinterpret_cast<T*>(malloc(mem_size));
     T* c = reinterpret_cast<T*>(malloc(mem_size));
+
+    float* verify_A = reinterpret_cast<float*>(malloc(sizeof(float) * SIZE));
+    float* verify_B = reinterpret_cast<float*>(malloc(sizeof(float) * SIZE));
+    float* verify_C =  reinterpret_cast<float*>(malloc(sizeof(float) * SIZE));
 
     // Initialize matrices on the host
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             a[i * N + j] = (T)sin(i);
             b[i * N + j] = (T)cos(j);
+            verify_A[i * N + j] = (float)sin(i);
+            verify_B[i * N + j] = (float)cos(j);
         }
     }
-
+    if (!use_cpu && VALIDATE) {
+        matrixMultiplication<float> runne_float(verify_C, verify_A, verify_B, N);
+        runne_float.setup(false);
+        runne_float.lanch(&matmul_opt_kernel<float>);
+        runne_float.therdown();
+    }
     matrixMultiplication<T> runner(c, a, b, N);
     runner.setup();
     for (int i{}; i < 1; i++) {
@@ -59,7 +69,7 @@ void run(bool use_cpu=true) {
         printf("Computing %d x %d matrix ...\n", N ,N);
         printf("Type size %d\n", sizeof(T) );
         if (use_cpu) {
-            cpu_time = matrixMultiplicationCPU<T>(verify_C, a, b, N);
+            cpu_time = matrixMultiplicationCPU<float>(verify_C, verify_A, verify_B, N);
             printf("matrixMultiplicationCPU CPU Computation time: %f\n", cpu_time);
         }
 
@@ -70,8 +80,6 @@ void run(bool use_cpu=true) {
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
-            if (!use_cpu)
-                memcpy(verify_C, c, mem_size);
             err = validate(c, verify_C, N);
             printf("Error:  %lf\n", err);
         }
@@ -116,6 +124,8 @@ void run(bool use_cpu=true) {
             }
         }
     }
+    free(verify_A);
+    free(verify_B);
     free(verify_C);
     free(a);
     free(b);

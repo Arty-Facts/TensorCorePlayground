@@ -16,6 +16,7 @@ Maximum grid dimensions:    2147483647 x 65535 x 65535
 Clock Rate:                 1815000
 Number of muliprocessors:   48
 Start...
+Computing 8192 x 8192 matrix ...
 Type size 2
 matmul_kernel GPU Computation time: 130890.234375
 Error:  0.000000
@@ -104,10 +105,17 @@ Clock Rate:                 1815000
 Number of muliprocessors:   48
 Start...
 Computing 8192 x 8192 matrix ...
-matmul_kernel GPU Computation time: 12284.616211
-matmul_shared_kernel GPU Computation time: 9769.526367
-matmul_cuda_kernel GPU Computation time: 9690.458984
-matmul_opt_kernel GPU Computation time: 7618.357422
+Type size 2
+matmul_kernel GPU Computation time: 130884.039063
+Error:  -851.218983
+matmul_shared_kernel GPU Computation time: 61697.003906
+Error:  -851.218983
+matmul_cuda_kernel GPU Computation time: 61751.871094
+Error:  -851.218983
+matmul_opt_kernel GPU Computation time: 60339.449219
+Error:  -851.218983
+matmul_mma_kernel GPU Computation time: 2273.077637
+Error:  204.330333
 
 
 For device #0

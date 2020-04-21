@@ -19,7 +19,7 @@ float matrixMultiplicationCPU(T* c, const T* a, const T* b, unsigned int N) {
 
 }
 template<typename T>
-double validate(T* val_c, T* c, int N) {
+double validate(T* val_c, float* c, int N) {
     double err = 0;
     // Check the result and make sure it is correct
     for (int ROW = 0; ROW < N; ROW++) {
