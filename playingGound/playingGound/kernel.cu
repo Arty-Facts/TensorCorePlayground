@@ -10,8 +10,9 @@
 #include <cuda.h>
 
 
+
 #define BLOCK_SIZE 32
-#define MAT_SIZE 1024*8
+#define MAT_SIZE 256
 #define DEVICE 0
 #define USE_CPU false
 #define TYPE half
@@ -19,6 +20,7 @@
 #define WARP_SIZE 32
 #define VALIDATE true
 #define WMMA_C 16
+#define HALF2 true
 
 #include "kernel.hpp"
 #include "setup.hpp"
@@ -102,7 +104,7 @@ void run(bool use_cpu=true) {
             err = validate(c, verify_C, N);
             printf("Error:  %lf\n", err);
         }
-
+   
         gpu_time = runner.lanch(&matmul_opt_kernel<T>);
 
         printf("matmul_opt_kernel GPU Computation time: %f\n", gpu_time);

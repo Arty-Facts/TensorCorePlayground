@@ -18,16 +18,16 @@ Number of muliprocessors:   48
 Start...
 Computing 8192 x 8192 matrix ...
 Type size 2
-matmul_kernel GPU Computation time: 130890.234375
-Error:  0.000000
-matmul_shared_kernel GPU Computation time: 61729.500000
-Error:  0.000000
-matmul_cuda_kernel GPU Computation time: 61725.289063
-Error:  0.000000
-matmul_opt_kernel GPU Computation time: 60317.855469
-Error:  0.000000
-matmul_mma_kernel GPU Computation time: 2268.580811
-Error:  1055.549316
+matmul_kernel GPU Computation time: 130884.039063
+Error:  -851.218983
+matmul_shared_kernel GPU Computation time: 61697.003906
+Error:  -851.218983
+matmul_cuda_kernel GPU Computation time: 61751.871094
+Error:  -851.218983
+matmul_opt_kernel GPU Computation time: 60339.449219
+Error:  -851.218983
+matmul_mma_kernel GPU Computation time: 2273.077637
+Error:  204.330333
 
 For device #0
 Device name:                GeForce RTX 2080 SUPER
@@ -105,17 +105,10 @@ Clock Rate:                 1815000
 Number of muliprocessors:   48
 Start...
 Computing 8192 x 8192 matrix ...
-Type size 2
-matmul_kernel GPU Computation time: 130884.039063
-Error:  -851.218983
-matmul_shared_kernel GPU Computation time: 61697.003906
-Error:  -851.218983
-matmul_cuda_kernel GPU Computation time: 61751.871094
-Error:  -851.218983
-matmul_opt_kernel GPU Computation time: 60339.449219
-Error:  -851.218983
-matmul_mma_kernel GPU Computation time: 2273.077637
-Error:  204.330333
+matmul_kernel GPU Computation time: 12284.616211
+matmul_shared_kernel GPU Computation time: 9769.526367
+matmul_cuda_kernel GPU Computation time: 9690.458984
+matmul_opt_kernel GPU Computation time: 7618.357422
 
 
 For device #0
