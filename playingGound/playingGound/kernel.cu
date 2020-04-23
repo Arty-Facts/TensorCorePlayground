@@ -12,7 +12,7 @@
 
 
 #define BLOCK_SIZE 16
-#define MAT_SIZE 1024*1
+#define MAT_SIZE 1024*8
 #define DEVICE 0
 #define USE_CPU false
 #define TYPE half
@@ -71,11 +71,13 @@ void run(bool use_cpu=true) {
         if (use_cpu) {
             cpu_time = matrixMultiplicationCPU<float>(verify_C, verify_A, verify_B, N);
             printf("matrixMultiplicationCPU CPU Computation time: %f\n", cpu_time);
+            printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (cpu_time / 1000.)) / 1e12);
         }
 
         gpu_time = runner.lanch(&matmul_kernel<T>);
 
         printf("matmul_kernel GPU Computation time: %f\n", gpu_time);
+        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
 
         runner.therdown();
         if (VALIDATE) {
@@ -87,6 +89,7 @@ void run(bool use_cpu=true) {
         gpu_time =  runner.lanch(&matmul_shared_kernel<T>);
 
         printf("matmul_shared_kernel GPU Computation time: %f\n", gpu_time);
+        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
@@ -96,6 +99,7 @@ void run(bool use_cpu=true) {
         gpu_time = runner.lanch(&matmul_cuda_kernel<T>);
 
         printf("matmul_cuda_kernel GPU Computation time: %f\n", gpu_time);
+        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
@@ -106,6 +110,7 @@ void run(bool use_cpu=true) {
         gpu_time = runner.lanch(&matmul_opt_kernel<T>);
 
         printf("matmul_opt_kernel GPU Computation time: %f\n", gpu_time);
+        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
@@ -118,6 +123,7 @@ void run(bool use_cpu=true) {
             gpu_time = runner.lanch(&matmul_mma_kernel<T, WARP_SIZE>, true);
 
             printf("matmul_mma_kernel GPU Computation time: %f\n", gpu_time);
+            printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
             runner.therdown();
             if (VALIDATE) {
                 // Check the result and make sure it is correct

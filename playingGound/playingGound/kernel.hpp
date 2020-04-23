@@ -183,9 +183,6 @@ __global__ void matmul_opt_kernel<half>(half* C, half* A, half* B, const unsigne
         __shared__ half2 As[BLOCK_SIZE * BLOCK_SIZE/2+1];
         __shared__ half2 Bs[BLOCK_SIZE * BLOCK_SIZE/2+1];
         // Index locked to patch
-        int w  = (blockDim.x/2);
-        int id_x = threadIdx.x+1;
-        int id_y = threadIdx.y+1;
         dy = b * blockDim.x/2 + threadIdx.y;
         if ( threadIdx.y < blockDim.y/2){
             As[threadIdx.y * blockDim.x + threadIdx.x] = A2[(N/2) * x + dy];
