@@ -44,7 +44,8 @@ Number of muliprocessors:   48
 Start...
 Computing 4096 x 4096 matrix ...
 Type size 2
-matmul_kernel GPU Computation time: 13529.435547
+matmul_kernel GPU Computation time: 46514.023438 hafl2
+matmul_kernel GPU Computation time: 13529.435547 half
 Error:  0.000000
 matmul_shared_kernel GPU Computation time: 7643.966797
 Error:  0.000000

@@ -19,6 +19,26 @@ __global__ void matmul_kernel(T* C, T* A, T* B, const unsigned int N) {
 
 }
 
+template<>
+__global__ void matmul_kernel<half>(half* C, half* A, half* B, const unsigned int N) {
+
+    unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+    unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+    half2 *A2 = reinterpret_cast<half2*>(A);
+    half2 *B2 = reinterpret_cast<half2*>(B);
+
+    half2 tmpSum(0.f, 0.f);
+
+    for (unsigned int i = 0; i < N/2; i++) {
+        // assuming the matrix is transposed for better Coalescing
+        // tmpSum += A[y * N + i] * B[i * N + x];
+        tmpSum += A2[y * N/2 + i] * B2[x * N/2 + i];
+    }
+    C[y * N + x] = tmpSum.x + tmpSum.y;
+
+}
+
+
 template<typename T>
 __global__ void matmul_shared_kernel(T* C, T* A, T* B, const unsigned int N) {
 
@@ -151,47 +171,43 @@ __global__ void matmul_opt_kernel(T* C, T* A, T* B, const unsigned int N) {
 template <>
 __global__ void matmul_opt_kernel<half>(half* C, half* A, half* B, const unsigned int N) {
    // Global index for thread
-    unsigned int x, y, k, b, dx,dy, start, end;
+    unsigned int x, y, k, b,dy, start, end;
     x = blockIdx.x * blockDim.x + threadIdx.x;
     y = blockIdx.y * blockDim.y + threadIdx.y;
     half2 *A2 = reinterpret_cast<half2*>(A);
     half2 *B2 = reinterpret_cast<half2*>(B);
-    half2 sum(0.f, 0.f);
+    half2 tmp(0.f, 0.f);
+    //half sum = 0.0f; 
     for (b = 0; b < gridDim.x; b++)
     {
         __shared__ half2 As[BLOCK_SIZE * BLOCK_SIZE/2+1];
         __shared__ half2 Bs[BLOCK_SIZE * BLOCK_SIZE/2+1];
         // Index locked to patch
-        int w  = (blockDim.x/2) + 1;
+        int w  = (blockDim.x/2);
         int id_x = threadIdx.x+1;
         int id_y = threadIdx.y+1;
-        dx = b * (blockDim.x/2) + w%id_x;
-        dy = b * (blockDim.x/2) + w%id_y;;
-        // if (blockDim.x/2 < threadIdx.x){
-        //     As[threadIdx.y * (blockDim.x/2) + w%id_x] = A2[(N/2) * j + dx];
-        //     Bs[threadIdx.x * (blockDim.y/2) + w%id_y] = B2[(N/2) * i + dy];
-        //     // printf("%f, %f AS \n",  (float)A2[N/2 * j + dx].x, 
-        //     //                         (float)A2[N/2 * j + dx].y);
-        // }else{
-        //     // printf("%f, %f BS \n",  (float)B2[N/2 * j + dx].x, 
-        //     //                         (float)B2[N/2 * j + dx].y);
-        // }
-        As[threadIdx.y * (blockDim.x/2) + w%id_x] = A2[(N/2) * y + dx];
-        Bs[threadIdx.x * (blockDim.y/2) + w%id_y] = B2[(N/2) * x + dy];
-
+        dy = b * blockDim.x/2 + threadIdx.y;
+        if ( threadIdx.y < blockDim.y/2){
+            As[threadIdx.x * blockDim.x/2 + threadIdx.y] = A2[(N/2) * x + dy];
+            Bs[threadIdx.x * blockDim.x/2 + threadIdx.y] = B2[(N/2) * y + dy];
+            // printf("%f, %f AS \n",  (float)A2[(N/2) * y + dx].x, 
+            //                         (float)A2[(N/2) * y + dx].y);
+        }else{
+        }
+        
         __syncthreads(); // Synchronize to make sure all data is loaded
         // Loop, perform computations in patch
 
         start = 0;
-        end = (blockDim.x/2);
+        end = blockDim.x/2;
         for (k = start; k < end; ++k){
-            sum += As[threadIdx.y * (blockDim.x/2) + k] * Bs[threadIdx.x * (blockDim.y/2) + k];
+            tmp += As[threadIdx.y * blockDim.x/2 + k] * Bs[threadIdx.x * blockDim.y/2 + k];
         }
         __syncthreads(); // Synch so nobody starts next pass prematurely
     }
     // printf("%f, %f Sum \n",  (float)sum.x, 
     //                          (float)sum.y);
-    C[x * N + y] = sum.x + sum.y;
+    C[x * N + y] = tmp.x + tmp.y;
 }
 
 template<   typename T, const int WARPSIZE >

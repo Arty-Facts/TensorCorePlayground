@@ -12,15 +12,14 @@
 
 
 #define BLOCK_SIZE 16
-#define MAT_SIZE 32
+#define MAT_SIZE 1024*4
 #define DEVICE 0
 #define USE_CPU false
-#define TYPE float
-#define TC false
+#define TYPE half
+#define TC true
 #define WARP_SIZE 32
 #define VALIDATE true
 #define WMMA_C 16
-#define HALF2 false
 
 #include "kernel.hpp"
 #include "setup.hpp"
