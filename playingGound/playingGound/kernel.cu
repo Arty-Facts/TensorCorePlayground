@@ -113,6 +113,8 @@ void run(bool use_cpu=true) {
             err = validate(c, verify_C, N);
             printf("Error:  %lf\n", err);
         }
+        // dont compile this code if tensor cores not needed
+        // float not supported on tensor cores
         if constexpr (TC) {
             gpu_time = runner.lanch(&matmul_mma_kernel<T, WARP_SIZE>, true);
 
