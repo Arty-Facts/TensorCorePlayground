@@ -12,7 +12,7 @@
 
 
 #define BLOCK_SIZE 16
-#define MAT_SIZE 1024*4
+#define MAT_SIZE 1024*1
 #define DEVICE 0
 #define USE_CPU false
 #define TYPE half

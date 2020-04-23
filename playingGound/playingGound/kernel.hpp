@@ -188,8 +188,8 @@ __global__ void matmul_opt_kernel<half>(half* C, half* A, half* B, const unsigne
         int id_y = threadIdx.y+1;
         dy = b * blockDim.x/2 + threadIdx.y;
         if ( threadIdx.y < blockDim.y/2){
-            As[threadIdx.x * blockDim.x/2 + threadIdx.y] = A2[(N/2) * x + dy];
-            Bs[threadIdx.x * blockDim.x/2 + threadIdx.y] = B2[(N/2) * y + dy];
+            As[threadIdx.y * blockDim.x + threadIdx.x] = A2[(N/2) * x + dy];
+            Bs[threadIdx.y * blockDim.x + threadIdx.x] = B2[(N/2) * y + dy];
             // printf("%f, %f AS \n",  (float)A2[(N/2) * y + dx].x, 
             //                         (float)A2[(N/2) * y + dx].y);
         }else{
@@ -201,7 +201,7 @@ __global__ void matmul_opt_kernel<half>(half* C, half* A, half* B, const unsigne
         start = 0;
         end = blockDim.x/2;
         for (k = start; k < end; ++k){
-            tmp += As[threadIdx.y * blockDim.x/2 + k] * Bs[threadIdx.x * blockDim.y/2 + k];
+            tmp += As[k * blockDim.x + threadIdx.y] * Bs[k * blockDim.y + threadIdx.x];
         }
         __syncthreads(); // Synch so nobody starts next pass prematurely
     }
