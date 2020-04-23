@@ -12,3 +12,9 @@ Debug*
 *.vs
 *.vscode
 bin*
+common/*
+fp16ScalarProduct/*
+immaTensorCoreGemm/*
+cudaTensorCoreGemm/*
+matrixMul/*
+matrixMul_nvrtc/*
