@@ -11,16 +11,16 @@
 
 
 
-#define BLOCK_SIZE 32
-#define MAT_SIZE 256
+#define BLOCK_SIZE 16
+#define MAT_SIZE 32
 #define DEVICE 0
 #define USE_CPU false
-#define TYPE half
-#define TC true
+#define TYPE float
+#define TC false
 #define WARP_SIZE 32
 #define VALIDATE true
 #define WMMA_C 16
-#define HALF2 true
+#define HALF2 false
 
 #include "kernel.hpp"
 #include "setup.hpp"
@@ -66,10 +66,9 @@ void run(bool use_cpu=true) {
     runner.setup();
     for (int i{}; i < 1; i++) {
 
-  
         printf("Start...\n");
         printf("Computing %d x %d matrix ...\n", N ,N);
-        printf("Type size %d\n", sizeof(T) );
+        printf("Type size %d\n", (int)sizeof(T) );
         if (use_cpu) {
             cpu_time = matrixMultiplicationCPU<float>(verify_C, verify_A, verify_B, N);
             printf("matrixMultiplicationCPU CPU Computation time: %f\n", cpu_time);
@@ -114,7 +113,7 @@ void run(bool use_cpu=true) {
             err = validate(c, verify_C, N);
             printf("Error:  %lf\n", err);
         }
-        if (TC) {
+        if constexpr (TC) {
             gpu_time = runner.lanch(&matmul_mma_kernel<T, WARP_SIZE>, true);
 
             printf("matmul_mma_kernel GPU Computation time: %f\n", gpu_time);

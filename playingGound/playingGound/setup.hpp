@@ -6,7 +6,7 @@ public:
     matrixMultiplication(T* c, const T* a, const T* b,  unsigned int n)
         : c{ c }, a{ a }, b{ b }, size{ n*n }, n{ n } {};
 
-    float lanch(void (*kernal)(T* C, T* A, T* B, const unsigned int N), bool tc_blocks=false, bool half2_blocks=false)
+    float lanch(void (*kernal)(T* C, T* A, T* B, const unsigned int N), bool tc_blocks=false)
     {
 
         cudaEvent_t myEventStart;
@@ -18,11 +18,8 @@ public:
         if (n > BLOCK_SIZE) {
             threadsPerBlock.x = BLOCK_SIZE;
             threadsPerBlock.y = BLOCK_SIZE;
-            blocksPerGrid.x = ceil(double(n) / double(threadsPerBlock.x));
-            blocksPerGrid.y = ceil(double(n) / double(threadsPerBlock.y));
-        }
-        if (half2_blocks){
-            threadsPerBlock.x /= 2;
+            blocksPerGrid.x = (unsigned int)ceil(double(n) / double(threadsPerBlock.x));
+            blocksPerGrid.y = (unsigned int)ceil(double(n) / double(threadsPerBlock.y));
         }
         if (tc_blocks) {
             threadsPerBlock.x = 4 * WARP_SIZE; 
@@ -52,16 +49,15 @@ public:
             return cudaStatus;
         }
         if (info){
-
             cudaDeviceProp deviceProp;
             cudaGetDeviceProperties(&deviceProp, DEVICE);
             printf("For device #%d\n", DEVICE);
             printf("Device name:                %s\n", deviceProp.name);
             printf("Major revision number:      %d\n", deviceProp.major);
             printf("Minor revision Number:      %d\n", deviceProp.minor);
-            printf("Total Global Memory:        %d\n", deviceProp.totalGlobalMem);
-            printf("Total shared mem per block: %d\n", deviceProp.sharedMemPerBlock);
-            printf("Total const mem size:       %d\n", deviceProp.totalConstMem);
+            printf("Total Global Memory:        %d\n", (int)deviceProp.totalGlobalMem);
+            printf("Total shared mem per block: %d\n", (int)deviceProp.sharedMemPerBlock);
+            printf("Total const mem size:       %d\n", (int)deviceProp.totalConstMem);
             printf("Warp size:                  %d\n", deviceProp.warpSize);
             printf("Maximum block dimensions:   %d x %d x %d\n", deviceProp.maxThreadsDim[0], \
                 deviceProp.maxThreadsDim[1], \
