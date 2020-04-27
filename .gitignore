@@ -18,3 +18,4 @@ immaTensorCoreGemm/*
 cudaTensorCoreGemm/*
 matrixMul/*
 matrixMul_nvrtc/*
+playingGound/x64/Release*

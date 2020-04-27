@@ -11,19 +11,26 @@
 
 
 
-#define BLOCK_SIZE 16
-#define MAT_SIZE 1024*8
+#define BLOCK_SIZE 32
+#define MAT_SIZE 1024
 #define DEVICE 0
-#define USE_CPU false
-#define TYPE half
-#define TC true
+#define USE_CPU true
+#define TYPE float
+#define TC false
 #define WARP_SIZE 32
 #define VALIDATE true
+
 #define WMMA_C 16
+#define CHUNK 4
+#define SKEW_HALF 8
 
 #include "kernel.hpp"
 #include "setup.hpp"
 #include "utils.hpp"
+
+void disp_flops(float time){
+    printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE*2) / (time / 1000.)) / 1e12);
+}
 
 template<typename T>
 void run(bool use_cpu=true) {
@@ -36,15 +43,14 @@ void run(bool use_cpu=true) {
     float gpu_time;
     double err;
     float cpu_time;
-    unsigned int mem_size = sizeof(T) * SIZE;
     
-    T* a = reinterpret_cast<T*>(malloc(mem_size));
-    T* b = reinterpret_cast<T*>(malloc(mem_size));
-    T* c = reinterpret_cast<T*>(malloc(mem_size));
+    T* a = new T[SIZE];
+    T* b = new T[SIZE];
+    T* c = new T[SIZE];
 
-    float* verify_A = reinterpret_cast<float*>(malloc(sizeof(float) * SIZE));
-    float* verify_B = reinterpret_cast<float*>(malloc(sizeof(float) * SIZE));
-    float* verify_C =  reinterpret_cast<float*>(malloc(sizeof(float) * SIZE));
+    float* verify_A = new float[SIZE];
+    float* verify_B = new float[SIZE];
+    float* verify_C = new float[SIZE];
 
     // Initialize matrices on the host
     for (int i = 0; i < N; i++) {
@@ -56,40 +62,40 @@ void run(bool use_cpu=true) {
         }
     }
     if (!use_cpu && VALIDATE) {
-        matrixMultiplication<float> runne_float(verify_C, verify_A, verify_B, N);
-        runne_float.setup(false);
-        runne_float.lanch(&matmul_opt_kernel<float>);
-        runne_float.therdown();
+        matrixMultiplication<float> runner_float(verify_C, verify_A, verify_B, N);
+        runner_float.setup(false);
+        runner_float.lanch(&matmul_opt_kernel<float>);
+        runner_float.therdown();
     }
     matrixMultiplication<T> runner(c, a, b, N);
     runner.setup();
     for (int i{}; i < 1; i++) {
-
+        
         printf("Start...\n");
         printf("Computing %d x %d matrix ...\n", N ,N);
         printf("Type size %d\n", (int)sizeof(T) );
         if (use_cpu) {
             cpu_time = matrixMultiplicationCPU<float>(verify_C, verify_A, verify_B, N);
             printf("matrixMultiplicationCPU CPU Computation time: %f\n", cpu_time);
-            printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (cpu_time / 1000.)) / 1e12);
+            disp_flops(cpu_time);
         }
-
+        
         gpu_time = runner.lanch(&matmul_kernel<T>);
-
+        
         printf("matmul_kernel GPU Computation time: %f\n", gpu_time);
-        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
-
+        disp_flops(gpu_time);
+        
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
             err = validate(c, verify_C, N);
             printf("Error:  %lf\n", err);
         }
-
+        
         gpu_time =  runner.lanch(&matmul_shared_kernel<T>);
-
+        
         printf("matmul_shared_kernel GPU Computation time: %f\n", gpu_time);
-        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
+        disp_flops(gpu_time);
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
@@ -97,20 +103,20 @@ void run(bool use_cpu=true) {
             printf("Error:  %lf\n", err);
         }
         gpu_time = runner.lanch(&matmul_cuda_kernel<T>);
-
+        
         printf("matmul_cuda_kernel GPU Computation time: %f\n", gpu_time);
-        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
+        disp_flops(gpu_time);
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
             err = validate(c, verify_C, N);
             printf("Error:  %lf\n", err);
         }
-   
+        
         gpu_time = runner.lanch(&matmul_opt_kernel<T>);
-
+        
         printf("matmul_opt_kernel GPU Computation time: %f\n", gpu_time);
-        printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
+        disp_flops(gpu_time);
         runner.therdown();
         if (VALIDATE) {
             // Check the result and make sure it is correct
@@ -121,24 +127,35 @@ void run(bool use_cpu=true) {
         // float not supported on tensor cores
         if constexpr (TC) {
             gpu_time = runner.lanch(&matmul_mma_kernel<T, WARP_SIZE>, true);
-
+            
             printf("matmul_mma_kernel GPU Computation time: %f\n", gpu_time);
-            printf("TFLOPS: %.2f\n", (((double)MAT_SIZE * MAT_SIZE * MAT_SIZE) / (gpu_time / 1000.)) / 1e12);
+            disp_flops(gpu_time);
             runner.therdown();
             if (VALIDATE) {
                 // Check the result and make sure it is correct
                 err = validate(c, verify_C, N);
                 printf("Error:  %lf\n", err);
             }
+            //gpu_time = runner.lanch(&matmul_shared_mma_kernel<T, WARP_SIZE>, true);
+
+            //printf("matmul_shared_mma_kernel GPU Computation time: %f\n", gpu_time);
+            //disp_flops(gpu_time);
+            //runner.therdown();
+            //if (VALIDATE) {
+            //    // Check the result and make sure it is correct
+            //    err = validate(c, verify_C, N);
+            //    printf("Error:  %lf\n", err);
+            //}
+
         }
     }
-    free(verify_A);
-    free(verify_B);
-    free(verify_C);
-    free(a);
-    free(b);
-    free(c);
-
+    delete[] verify_A;
+    delete[] verify_B;
+    delete[] verify_C;
+    delete[] a;
+    delete[] b;
+    delete[] c;
+    
 }
 
 
